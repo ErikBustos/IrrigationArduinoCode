@@ -1,15 +1,15 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
-
+#include <DHT.h>
 #include <NTPClient.h>
-
 
 #define pin15 15 //moisture sensor
 #define pin2 2  //photoresistor sensor
 #define pin4 4 //Rain Detector
 #define pin27 27//WaterFlow sensor
 #define RELAY 14 //Relay
+#define pin13 13 //Temp Humidity
 
 const char* ssid     = "IZZI-FAC9";
 const char* password = "704FB841FAC9";
@@ -27,6 +27,9 @@ String dayStamp;
 String timeStamp;
 String macid;
 int moisturevalue, photoresistor_val, rainValue, waterValue, airTemp;
+float humidityValue, temperatureValue;
+
+DHT dht1(pin13, DHT11); //El azul
 
 void setup() {
   Serial.begin(115200);
@@ -34,7 +37,8 @@ void setup() {
   //pinMode(RELAY, OUTPUT);  //Relay setup
   //digitalWrite(RELAY, HIGH);
   Serial.println("Configuring sensors setup...");
-
+  
+  dht1.begin();
   timeClient.begin();
   timeClient.setTimeOffset(-18000);
 }
@@ -53,9 +57,12 @@ void loop() {
   photoresistor_val= analogRead(pin2);
   rainValue= analogRead(pin4);
   waterValue = analogRead(pin27);
-
+  temperatureValue = dht1.readTemperature();
+  humidityValue = dht1.readHumidity();
+  
   //Get macid 9C:9C:1F:C7:F7:E4
   macid= WiFi.macAddress();
+  
   //Post Data to Server
   postToServer();
         
@@ -63,16 +70,6 @@ void loop() {
   
   //Irrigate
   digitalWrite(RELAY, HIGH);   //turns the RELAY on
-
-  //Print vals
-  Serial.print("Moisture Val: ");
-  Serial.println(moisturevalue);
-  Serial.print("Photoresistor Val: ");
-  Serial.println(photoresistor_val);
-  Serial.print("Rain Value: ");
-  Serial.println(rainValue);
-  Serial.print("Water Flow  Value: ");
-  Serial.println(waterValue);
 
   digitalWrite(RELAY, HIGH);
 }
@@ -103,13 +100,13 @@ void postToServer() {
 
       //Set JSON
       StaticJsonDocument<200> jsonDoc;
-      jsonDoc["airHumidity"] = 29.5;
-      jsonDoc["airTemperature"] = 25.8 ;
+      jsonDoc["airHumidity"] = humidityValue;
+      jsonDoc["airTemperature"] = temperatureValue ;
       jsonDoc["light"] = photoresistor_val ;
       jsonDoc["soilHumidity"] = moisturevalue ;
       jsonDoc["rainDrops"] = rainValue ;
       jsonDoc["timestamp"] = formattedDate ;
-      jsonDoc["macid"] = macid ;
+      jsonDoc["macid"] = macid ;      
       
       String output;
       serializeJson(jsonDoc, output);
