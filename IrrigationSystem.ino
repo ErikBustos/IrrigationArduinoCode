@@ -4,9 +4,9 @@
 #include <DHT.h>
 #include <NTPClient.h>
 
-#define pin15 15 //moisture sensor
-#define pin2 2  //photoresistor sensor
-#define pin4 4 //Rain Detector
+#define pin34 34 //moisture sensor
+#define pin32 32  //photoresistor sensor
+#define pin35 35 //Rain Detector
 #define pin27 27//WaterFlow sensor
 #define RELAY 14 //Relay
 #define pin13 13 //Temp Humidity
@@ -19,14 +19,14 @@ WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP);
 
 //Your Domain name with URL path or IP address with path
-String serverName = "https://project-toolchain-iotpushtodb.mybluemix.net";
+String serverHost = "http://processiotinput-env.eba-qusd4sbh.us-east-1.elasticbeanstalk.com";
 
 // Variables to save date and time
 String formattedDate;
 String dayStamp;
 String timeStamp;
 String macid;
-int moisturevalue, photoresistor_val, rainValue, waterValue, airTemp;
+int moisturevalue, rainValue, waterValue, airTemp, photoresistor_val;
 float humidityValue, temperatureValue;
 
 DHT dht1(pin13, DHT11); //El azul
@@ -44,7 +44,6 @@ void setup() {
 }
 
 void loop() {
-   delay(10000); // 10 seconds delay
    while(!timeClient.update()) {
     timeClient.forceUpdate();
     }
@@ -53,9 +52,9 @@ void loop() {
   formattedDate = timeClient.getFormattedDate();
 
   //Read Sensors
-  moisturevalue = analogRead(pin15);
-  photoresistor_val= analogRead(pin2);
-  rainValue= analogRead(pin4);
+  moisturevalue = analogRead(pin34);
+  photoresistor_val= analogRead(pin32);
+  rainValue= analogRead(pin35);
   waterValue = analogRead(pin27);
   temperatureValue = dht1.readTemperature();
   humidityValue = dht1.readHumidity();
@@ -72,6 +71,7 @@ void loop() {
   digitalWrite(RELAY, HIGH);   //turns the RELAY on
 
   digitalWrite(RELAY, HIGH);
+  delay(1800000); // 30 minutes delay
 }
 
 void connectToWiFi() {
@@ -92,7 +92,7 @@ void connectToWiFi() {
 void postToServer() {
   if(WiFi.status() == WL_CONNECTED){
       HTTPClient http;
-      String serverPath = serverName + "/api/pushtodb";
+      String serverPath = serverHost + "/api/processInputData";
       // Your Domain name with URL path or IP address with path
       http.begin(serverPath);
       // Specify content-type header
